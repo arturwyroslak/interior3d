@@ -1,20 +1,11 @@
 'use client';
 
-import { EffectComposer, Bloom, DepthOfField, SSAO, ToneMapping } from '@react-three/postprocessing';
-import { ToneMappingMode } from 'postprocessing';
+import { EffectComposer, Bloom, DepthOfField, SSAO } from '@react-three/postprocessing';
 import { useRenderStore } from '@/stores/useRenderStore';
 import Scene3D from './Scene3D';
 
 export default function RenderView() {
-  const { quality, ambientOcclusion, antialiasing, toneMapping } = useRenderStore();
-
-  const toneMappingMode = {
-    none: ToneMappingMode.LINEAR,
-    linear: ToneMappingMode.LINEAR,
-    reinhard: ToneMappingMode.REINHARD,
-    cinematic: ToneMappingMode.REINHARD2,
-    aces: ToneMappingMode.ACES_FILMIC,
-  }[toneMapping];
+  const { quality, ambientOcclusion, antialiasing } = useRenderStore();
 
   return (
     <>
@@ -49,9 +40,6 @@ export default function RenderView() {
             bokehScale={3}
           />
         )}
-
-        {/* Tone Mapping */}
-        <ToneMapping mode={toneMappingMode} />
       </EffectComposer>
     </>
   );
