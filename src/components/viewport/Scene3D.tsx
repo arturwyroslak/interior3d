@@ -1,76 +1,32 @@
 'use client';
 
-import { OrbitControls, Grid, Sky, Environment, ContactShadows, PerspectiveCamera, TransformControls, GizmoHelper, GizmoViewport } from '@react-three/drei';
+import { OrbitControls, Grid, Sky, Environment, ContactShadows, PerspectiveCamera, GizmoHelper, GizmoViewport } from '@react-three/drei';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useRenderStore } from '@/stores/useRenderStore';
 import Wall3D from './objects/Wall3D';
 import Asset3D from './objects/Asset3D';
-import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
 
 export default function Scene3D() {
-  const { walls, assets, snapToGrid, gridSize, activeTool, selectedIds, updateAsset } = useProjectStore();
+  const { walls, assets, snapToGrid, gridSize, activeTool, selectedIds } = useProjectStore();
   const { shadows, sunIntensity } = useRenderStore();
-  const orbitControlsRef = useRef<any>(null);
 
-  // Determine transform mode
-  const transformMode = 
-    activeTool === 'move' ? 'translate' :
-    activeTool === 'rotate' ? 'rotate' :
-    activeTool === 'scale' ? 'scale' : 
-    null;
-
-  const selectedAsset = assets.find(a => selectedIds.includes(a.id));
+  const isTransforming = ['move', 'rotate', 'scale'].includes(activeTool) && selectedIds.length > 0;
 
   return (
     <>
       {/* Camera */}
       <PerspectiveCamera makeDefault position={[10, 10, 10]} fov={50} />
       
-      {/* Controls */}
+      {/* Controls - Disable orbit when using gizmos to prevent camera conflict */}
       <OrbitControls
-        ref={orbitControlsRef}
         makeDefault
         enableDamping
         dampingFactor={0.05}
         minDistance={1}
         maxDistance={50}
         maxPolarAngle={Math.PI / 2}
-        // Disable orbit when transforming
-        enabled={!transformMode || !selectedAsset}
+        enabled={!isTransforming} 
       />
-
-      {/* Transform Controls */}
-      {selectedAsset && transformMode && (
-        <TransformControls
-          object={undefined} // Attached via scene graph in real usage, keeping simple
-          position={selectedAsset.position}
-          rotation={selectedAsset.rotation}
-          scale={selectedAsset.scale}
-          mode={transformMode}
-          onObjectChange={(e: any) => {
-            // Update store on change
-            // This is a simplification. In R3F, we'd attach the ref of the Asset3D object to TransformControls
-            // But since we map assets, we can't easily ref them all here without a registry.
-            // For this demo, we assume the Asset3D component handles its own refs, or we use a different approach.
-            // Let's rely on the visual gizmo for now.
-            if (e?.target?.object) {
-                const o = e.target.object;
-                updateAsset(selectedAsset.id, {
-                    position: [o.position.x, o.position.y, o.position.z],
-                    rotation: [o.rotation.x, o.rotation.y, o.rotation.z],
-                    scale: [o.scale.x, o.scale.y, o.scale.z]
-                });
-            }
-          }}
-        >
-            {/* We render a transparent proxy box to attach controls to, 
-                in a real app we'd pass the actual mesh ref */}
-            <mesh visible={false}>
-                <boxGeometry args={[1,1,1]} />
-            </mesh>
-        </TransformControls>
-      )}
 
       {/* Lighting */}
       <ambientLight intensity={0.4} />
