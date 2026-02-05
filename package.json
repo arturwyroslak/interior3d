@@ -9,16 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.0.2",
     "@react-three/drei": "^9.105.4",
     "@react-three/fiber": "^8.16.2",
     "@react-three/postprocessing": "^2.16.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
     "leva": "^0.9.35",
     "lucide-react": "^0.367.0",
     "next": "14.2.3",
     "postprocessing": "^6.35.3",
     "react": "^18",
     "react-dom": "^18",
+    "tailwind-merge": "^2.2.2",
     "three": "^0.163.0",
+    "three-stdlib": "^2.29.4",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
