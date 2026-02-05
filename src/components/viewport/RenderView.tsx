@@ -11,36 +11,33 @@ export default function RenderView() {
     <>
       <Scene3D />
       
-      {/* Post-processing Effects */}
-      <EffectComposer multisampling={antialiasing ? 8 : 0}>
-        {/* Ambient Occlusion */}
-        {ambientOcclusion && quality !== 'low' ? (
-          <SSAO
-            samples={quality === 'ultra' ? 32 : quality === 'high' ? 16 : 8}
-            radius={0.1}
-            intensity={30}
-          />
-        ) : null}
+      {/* Post-processing Effects - Only when quality allows */}
+      {quality !== 'low' && (
+        <EffectComposer multisampling={antialiasing ? 8 : 0}>
+          {ambientOcclusion && (
+            <SSAO
+              samples={quality === 'ultra' ? 32 : quality === 'high' ? 16 : 8}
+              radius={0.1}
+              intensity={30}
+            />
+          )}
 
-        {/* Bloom */}
-        {quality !== 'low' ? (
           <Bloom
             intensity={0.5}
             luminanceThreshold={0.9}
             luminanceSmoothing={0.9}
             mipmapBlur
           />
-        ) : null}
 
-        {/* Depth of Field */}
-        {quality === 'ultra' ? (
-          <DepthOfField
-            focusDistance={0.01}
-            focalLength={0.05}
-            bokehScale={3}
-          />
-        ) : null}
-      </EffectComposer>
+          {quality === 'ultra' && (
+            <DepthOfField
+              focusDistance={0.01}
+              focalLength={0.05}
+              bokehScale={3}
+            />
+          )}
+        </EffectComposer>
+      )}
     </>
   );
 }
