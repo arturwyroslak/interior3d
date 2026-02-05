@@ -12,17 +12,22 @@ export default function RenderView() {
     return <Scene3D />;
   }
 
-  // Construct effects array to satisfy strict TypeScript requirements
-  // EffectComposer children must be Elements, not null/boolean
+  // EffectComposer children must be Elements (no boolean/null), so we build an explicit array.
   const effects: ReactElement[] = [];
 
   if (ambientOcclusion) {
     effects.push(
       <SSAO
         key="ssao"
+        // Core SSAO params
         samples={quality === 'ultra' ? 32 : quality === 'high' ? 16 : 8}
         radius={0.1}
         intensity={30}
+        // Required by current @react-three/postprocessing typings
+        worldDistanceThreshold={1}
+        worldDistanceFalloff={0.25}
+        worldProximityThreshold={1}
+        worldProximityFalloff={0.25}
       />
     );
   }
@@ -51,9 +56,7 @@ export default function RenderView() {
   return (
     <>
       <Scene3D />
-      <EffectComposer multisampling={antialiasing ? 8 : 0}>
-        {effects}
-      </EffectComposer>
+      <EffectComposer multisampling={antialiasing ? 8 : 0}>{effects}</EffectComposer>
     </>
   );
 }
