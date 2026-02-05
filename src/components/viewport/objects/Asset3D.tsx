@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Mesh, BoxGeometry } from 'three';
+import { Group, BoxGeometry } from 'three';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useCursor, TransformControls } from '@react-three/drei';
 import { ProceduralSofa, ProceduralTable, ProceduralChair, ProceduralBed } from './ProceduralFurniture';
@@ -14,12 +14,12 @@ interface Asset3DProps {
     scale: [number, number, number];
     name: string;
     modelPath?: string;
-    color?: string; // Support custom color
+    color?: string;
   };
 }
 
 export default function Asset3D({ asset }: Asset3DProps) {
-  const meshRef = useRef<Mesh>(null);
+  const meshRef = useRef<Group>(null);
   const { selectedIds, setSelected, activeTool, updateAsset } = useProjectStore();
   const isSelected = selectedIds.includes(asset.id);
   const [hovered, setHovered] = useState(false);
@@ -39,7 +39,6 @@ export default function Asset3D({ asset }: Asset3DProps) {
       if (name.includes('chair')) return <ProceduralChair color={asset.color} />;
       if (name.includes('bed')) return <ProceduralBed color={asset.color} />;
       
-      // Default Cube
       return (
         <mesh castShadow receiveShadow>
             <boxGeometry args={[1, 1, 1]} />
@@ -61,12 +60,10 @@ export default function Asset3D({ asset }: Asset3DProps) {
         onPointerOver={() => setHovered(true)}
         onPointerOut={() => setHovered(false)}
       >
-        {/* Render the specific procedural geometry */}
         <group ref={meshRef}>
             {renderProceduralAsset()}
         </group>
         
-        {/* Selection Bounding Box */}
         {isSelected && (
           <lineSegments>
             <edgesGeometry args={[new BoxGeometry(1.2, 1.2, 1.2)]} /> 
@@ -75,11 +72,9 @@ export default function Asset3D({ asset }: Asset3DProps) {
         )}
       </group>
       
-      {transformMode && (
+      {transformMode && meshRef.current && (
         <TransformControls
-          object={meshRef} // Technically this attaches to the inner group. 
-          // For correct behavior we ideally attach to a proxy or handle logic carefully.
-          // For this advanced demo, we assume the visual feedback is key.
+          object={meshRef.current}
           mode={transformMode}
           size={0.8}
           onMouseUp={() => {
@@ -95,9 +90,7 @@ export default function Asset3D({ asset }: Asset3DProps) {
                         asset.rotation[1] + meshRef.current.rotation.y,
                         asset.rotation[2] + meshRef.current.rotation.z,
                     ],
-                    // Scale would need multiplication logic
                  });
-                 // Reset local transform after applying to store (global)
                  meshRef.current.position.set(0,0,0);
                  meshRef.current.rotation.set(0,0,0);
                  meshRef.current.scale.set(1,1,1);
