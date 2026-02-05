@@ -1,0 +1,3 @@
+# Ignore old/duplicate files during build
+src/components/layout/AssetLibrary.tsx
+src/components/ui/
