@@ -17,8 +17,8 @@ import {
   Box,
   Image,
   FileJson,
-  Camera,
 } from 'lucide-react';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 
 export default function TopBar() {
   const {
@@ -30,24 +30,70 @@ export default function TopBar() {
     toggleDarkMode,
     snapToGrid,
     toggleSnapToGrid,
-    showDimensions,
     undo,
     redo,
     newProject,
     saveProject,
     historyIndex,
     history,
+    loadProject
   } = useProjectStore();
 
   const [showSettings, setShowSettings] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const canUndo = historyIndex >= 0;
   const canRedo = historyIndex < history.length - 1;
 
+  const handleFileOpen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        loadProject(json);
+      } catch (err) {
+        console.error('Failed to parse project file', err);
+        alert('Invalid project file');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleExport = (format: string) => {
-    console.log(`Exporting as ${format}`);
     setShowExportMenu(false);
+    
+    if (format === 'GLB') {
+        exportGLB();
+    } else if (format === 'JPG' || format === 'PNG') {
+        exportImage(format.toLowerCase());
+    } else {
+        alert(`${format} export not implemented yet.`);
+    }
+  };
+
+  const exportGLB = () => {
+    setIsExporting(true);
+    import('three').then((THREE) => {
+        const scene = window.sceneRef; // We need to expose scene ref or traverse logic
+        // Since we don't have direct access to the scene object here easily without context,
+        // we'll dispatch a custom event that Scene3D listens to, OR use a more robust architecture.
+        // For this "advanced implementation" in a Next.js client component, custom event is a clean decoupled way.
+        
+        window.dispatchEvent(new CustomEvent('trigger-export-glb', { 
+            detail: { filename: projectName || 'project' }
+        }));
+        setIsExporting(false);
+    });
+  };
+
+  const exportImage = (format: string) => {
+     window.dispatchEvent(new CustomEvent('trigger-screenshot', {
+        detail: { format, filename: projectName || 'screenshot' }
+     }));
   };
 
   return (
@@ -84,7 +130,6 @@ export default function TopBar() {
             title="New Project"
           >
             <Plus className="w-5 h-5" />
-            <span className="tooltip">New Project</span>
           </button>
           <button
             onClick={() => document.getElementById('file-input')?.click()}
@@ -168,10 +213,11 @@ export default function TopBar() {
         <div className="relative">
           <button
             onClick={() => setShowExportMenu(!showExportMenu)}
-            className="p-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-lg transition-all duration-200 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50"
+            className="p-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 rounded-lg transition-all duration-200 text-white shadow-lg shadow-green-500/30 hover:shadow-green-500/50 flex gap-2 items-center"
             title="Export"
           >
             <Download className="w-5 h-5" />
+            {isExporting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>}
           </button>
           {showExportMenu && (
             <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl overflow-hidden z-50 animate-fade-in">
@@ -195,13 +241,6 @@ export default function TopBar() {
               >
                 <Box className="w-4 h-4" />
                 Export as GLB
-              </button>
-              <button
-                onClick={() => handleExport('PDF')}
-                className="w-full px-4 py-2.5 text-left text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <FileJson className="w-4 h-4" />
-                Export as PDF
               </button>
             </div>
           )}
@@ -228,15 +267,6 @@ export default function TopBar() {
           </button>
         </div>
 
-        {/* Settings */}
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-2 hover:bg-gray-700 rounded-lg transition-all duration-200 text-gray-300 hover:text-white"
-          title="Settings"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-
         {/* Theme Toggle */}
         <button
           onClick={toggleDarkMode}
@@ -247,7 +277,20 @@ export default function TopBar() {
         </button>
       </div>
 
-      <input type="file" id="file-input" className="hidden" accept=".interior3d,.json" />
+      <input 
+        type="file" 
+        id="file-input" 
+        className="hidden" 
+        accept=".interior3d,.json"
+        onChange={handleFileOpen}
+      />
     </div>
   );
+}
+
+// Add global type for window
+declare global {
+  interface Window {
+    sceneRef: any;
+  }
 }

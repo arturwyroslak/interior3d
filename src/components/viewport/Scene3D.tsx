@@ -1,32 +1,97 @@
 'use client';
 
-import { OrbitControls, Grid, Sky, Environment, ContactShadows, PerspectiveCamera, GizmoHelper, GizmoViewport } from '@react-three/drei';
+import { OrbitControls, Grid, Sky, Environment, ContactShadows, PerspectiveCamera, GizmoHelper, GizmoViewport, PointerLockControls } from '@react-three/drei';
 import { useProjectStore } from '@/stores/useProjectStore';
 import { useRenderStore } from '@/stores/useRenderStore';
 import Wall3D from './objects/Wall3D';
 import Asset3D from './objects/Asset3D';
+import { useEffect, useRef, useState } from 'react';
+import { useThree } from '@react-three/fiber';
+import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import * as THREE from 'three';
 
 export default function Scene3D() {
   const { walls, assets, snapToGrid, gridSize, activeTool, selectedIds } = useProjectStore();
   const { shadows, sunIntensity } = useRenderStore();
+  const { scene, gl, camera } = useThree();
+  const controlsRef = useRef<any>(null);
+  
+  const [isWalkMode, setIsWalkMode] = useState(false);
 
   const isTransforming = ['move', 'rotate', 'scale'].includes(activeTool) && selectedIds.length > 0;
 
+  // Toggle walk mode when tool changes
+  useEffect(() => {
+    setIsWalkMode(activeTool === 'navigation');
+  }, [activeTool]);
+
+  // Expose scene for export
+  useEffect(() => {
+    window.sceneRef = scene;
+
+    const handleExportGLB = (e: any) => {
+        const filename = e.detail?.filename || 'scene';
+        const exporter = new GLTFExporter();
+        exporter.parse(
+            scene,
+            (result) => {
+                const output = JSON.stringify(result, null, 2);
+                const blob = new Blob([output], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${filename}.gltf`; // Using .gltf for text-based simple example, .glb requires arraybuffer handling
+                link.click();
+                URL.revokeObjectURL(url);
+            },
+            (error) => {
+                console.error('An error happened during GLTF export', error);
+            },
+            {}
+        );
+    };
+
+    const handleScreenshot = (e: any) => {
+        const filename = e.detail?.filename || 'screenshot';
+        const format = e.detail?.format || 'png';
+        
+        // Force render
+        gl.render(scene, camera);
+        const dataUrl = gl.domElement.toDataURL(`image/${format}`);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `${filename}.${format}`;
+        link.click();
+    };
+
+    window.addEventListener('trigger-export-glb', handleExportGLB);
+    window.addEventListener('trigger-screenshot', handleScreenshot);
+    
+    return () => {
+        window.removeEventListener('trigger-export-glb', handleExportGLB);
+        window.removeEventListener('trigger-screenshot', handleScreenshot);
+    };
+  }, [scene, gl, camera]);
+
   return (
     <>
-      {/* Camera */}
       <PerspectiveCamera makeDefault position={[10, 10, 10]} fov={50} />
       
-      {/* Controls - Disable orbit when using gizmos to prevent camera conflict */}
-      <OrbitControls
-        makeDefault
-        enableDamping
-        dampingFactor={0.05}
-        minDistance={1}
-        maxDistance={50}
-        maxPolarAngle={Math.PI / 2}
-        enabled={!isTransforming} 
-      />
+      {/* Controls Switching */}
+      {isWalkMode ? (
+        <PointerLockControls selector="#canvas-container" />
+      ) : (
+        <OrbitControls
+          ref={controlsRef}
+          makeDefault
+          enableDamping
+          dampingFactor={0.05}
+          minDistance={1}
+          maxDistance={50}
+          maxPolarAngle={Math.PI / 2}
+          enabled={!isTransforming} 
+        />
+      )}
 
       {/* Lighting */}
       <ambientLight intensity={0.4} />
@@ -44,7 +109,7 @@ export default function Scene3D() {
       <Sky sunPosition={[100, 20, 100]} />
 
       {/* Grid */}
-      {snapToGrid && (
+      {snapToGrid && !isWalkMode && (
         <Grid
           args={[100, 100]}
           cellSize={gridSize}
@@ -78,10 +143,12 @@ export default function Scene3D() {
         ))}
       </group>
 
-      {/* Gizmo Helper */}
-      <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
-        <GizmoViewport axisColors={['#ef4444', '#22c55e', '#3b82f6']} labelColor="white" />
-      </GizmoHelper>
+      {/* Gizmo Helper - Hide in walk mode */}
+      {!isWalkMode && (
+        <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
+            <GizmoViewport axisColors={['#ef4444', '#22c55e', '#3b82f6']} labelColor="white" />
+        </GizmoHelper>
+      )}
     </>
   );
 }
