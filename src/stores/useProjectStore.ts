@@ -3,7 +3,7 @@ import { devtools, persist } from 'zustand/middleware';
 import { Vector3 } from 'three';
 
 export type ViewMode = '2D' | '3D' | 'RENDER';
-export type Tool = 'select' | 'wall' | 'door' | 'window' | 'measure' | 'move' | 'rotate' | 'scale' | 'delete';
+export type Tool = 'select' | 'wall' | 'door' | 'window' | 'measure' | 'move' | 'rotate' | 'scale' | 'delete' | 'navigation' | 'duplicate';
 
 interface Wall {
   id: string;
